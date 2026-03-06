@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 
-const project = "vpn-sub-910e3";
+const project = "vless-panel";
 
 const url =
 `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/vpn_keys`;
