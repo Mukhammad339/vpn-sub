@@ -56,6 +56,18 @@ async function fsDelete(col, id) {
   await fetch(`${FS}/${col}/${id}`, { method: "DELETE" });
 }
 
+// Vercel не парсит body автоматически — читаем вручную
+async function parseBody(req) {
+  return new Promise((resolve) => {
+    if (req.body && typeof req.body === "object") return resolve(req.body);
+    let data = "";
+    req.on("data", chunk => { data += chunk; });
+    req.on("end", () => {
+      try { resolve(JSON.parse(data)); } catch { resolve({}); }
+    });
+  });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "x-admin-key, content-type");
@@ -72,17 +84,11 @@ export default async function handler(req, res) {
     return res.status(200).json(users);
   }
 
-  // GET /api/admin/users?servers=1 — список серверов из vpn_keys
-  if (method === "GET" && req.query.servers) {
-    const servers = await fsGetAll("vpn_keys");
-    return res.status(200).json(servers);
-  }
-
   // POST /api/admin/users — создать пользователя
   if (method === "POST") {
-    const body = req.body;
+    const body = await parseBody(req);
     const id = "u_" + Date.now();
-    await fsSet("vpn_users", id, { ...body, _id: undefined });
+    await fsSet("vpn_users", id, body);
     return res.status(200).json({ _id: id, ...body });
   }
 
@@ -90,7 +96,7 @@ export default async function handler(req, res) {
   if (method === "PUT") {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: "id required" });
-    const body = req.body;
+    const body = await parseBody(req);
     await fsSet("vpn_users", id, body);
     return res.status(200).json({ _id: id, ...body });
   }
