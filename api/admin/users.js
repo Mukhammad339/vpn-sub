@@ -42,14 +42,14 @@ async function fsGetAll(col) {
 
 async function fsSet(col, id, data) {
   const fields = toFsFields(data);
-  const fieldPaths = Object.keys(fields).join(",");
-  const url = `${FS}/${col}/${id}?updateMask.fieldPaths=${encodeURIComponent(fieldPaths)}`;
+  
+  const mask = Object.keys(fields).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&"); const url = `${FS}/${col}/${id}?${mask}`;
   const r = await fetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fields })
   });
-  return r.json();
+  const result = await r.json(); if (result.error) console.error("Firestore error:", JSON.stringify(result.error)); return result;
 }
 
 async function fsDelete(col, id) {
